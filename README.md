@@ -63,7 +63,7 @@ class Admin:
     def displayAdminDetails(self):
         return f"Admin ID: {self.__adminID}\nName: {self.__name}\nEmail: {self.__email}\nPhone: {self.__phoneNumber}\n"
 
-class DeliveryStaff:
+class DeliveryMembers:
     def __init__(self, staffID, name, phoneNumber, assignedOrders):
         self.__staffID = staffID
         self.__name = name
@@ -113,8 +113,8 @@ order2 = Order(102, customer2.getCustomerID(), ["Smartwatch", "Strap"], "Shipped
 admin1 = Admin(5001, "Admin Chris", "chris.admin@example.com", "+111-222-3333")
 admin2 = Admin(5002, "Admin Taylor", "taylor.admin@example.com", "+444-555-6666")
 
-staff1 = DeliveryStaff(7001, "Dave Wilson", "+777-888-9999", [order1.getOrderID()])
-staff2 = DeliveryStaff(7002, "Eva Martinez", "+000-111-2222", [order2.getOrderID()])
+staff1 = DeliveryMembers(7001, "Dave Wilson", "+777-888-9999", [order1.getOrderID()])
+staff2 = DeliveryMembers(7002, "Eva Martinez", "+000-111-2222", [order2.getOrderID()])
 
 item1 = Item(1001, "Wireless Headphones", 150, 20)
 item2 = Item(1002, "Smartwatch Ultra", 300, 15)

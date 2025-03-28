@@ -1,1 +1,413 @@
-p
+"""
+SIMPLE HOTEL MANAGEMENT SYSTEM
+with all required features in a single file
+"""
+
+from datetime import datetime, timedelta
+
+# Initialize sample rooms
+rooms = [
+    {
+        "room_number": "101",
+        "type": "Single",
+        "amenities": ["Wi-Fi", "TV", "Air Conditioning"],
+        "price_per_night": 99.99,
+        "availability": True
+    },
+    {
+        "room_number": "102",
+        "type": "Single",
+        "amenities": ["Wi-Fi", "TV"],
+        "price_per_night": 89.99,
+        "availability": True
+    },
+    {
+        "room_number": "201",
+        "type": "Double",
+        "amenities": ["Wi-Fi", "TV", "Mini-Bar", "Air Conditioning"],
+        "price_per_night": 149.99,
+        "availability": True
+    },
+    {
+        "room_number": "202",
+        "type": "Double",
+        "amenities": ["Wi-Fi", "TV", "Air Conditioning"],
+        "price_per_night": 139.99,
+        "availability": True
+    },
+    {
+        "room_number": "301",
+        "type": "Suite",
+        "amenities": ["Wi-Fi", "TV", "Mini-Bar", "Jacuzzi", "Air Conditioning"],
+        "price_per_night": 249.99,
+        "availability": True
+    }
+]
+
+# Initialize empty lists for guests, reservations, and services
+guests = []
+reservations = []
+service_requests = []
+feedbacks = []
+
+# Loyalty program setup
+LOYALTY_POINTS_PER_DOLLAR = 10
+loyalty_rewards = {
+    500: "10% off next stay",
+    1000: "1 free night (standard room)",
+    2000: "2 free nights (any room)"
+}
+
+def display_rooms():
+    """Display all available rooms with details"""
+    print("\nAVAILABLE ROOMS:")
+    print("=" * 50)
+    for room in rooms:
+        if room["availability"]:
+            print(f"Room {room['room_number']} ({room['type']})")
+            print(f"Amenities: {', '.join(room['amenities'])}")
+            print(f"Price per night: ${room['price_per_night']:.2f}")
+            print("-" * 50)
+
+def register_guest():
+    """Register a new guest"""
+    print("\nGUEST REGISTRATION")
+    print("=" * 50)
+    
+    # Get guest details
+    name = input("Full Name: ")
+    email = input("Email: ")
+    while "@" not in email:
+        print("Invalid email format!")
+        email = input("Email: ")
+    
+    phone = input("Phone Number: ")
+    while not phone.isdigit():
+        print("Phone number should contain only digits!")
+        phone = input("Phone Number: ")
+    
+    # Create guest ID
+    guest_id = f"G{len(guests)+1:03d}"
+    
+    # Add to guests list
+    guests.append({
+        "guest_id": guest_id,
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "loyalty_points": 0,
+        "reservations": []
+    })
+    
+    print(f"\nRegistration successful! Your Guest ID is: {guest_id}")
+
+def make_reservation():
+    """Make a new reservation"""
+    print("\nMAKE A RESERVATION")
+    print("=" * 50)
+    
+    # Find guest
+    guest_id = input("Enter your Guest ID: ")
+    guest = next((g for g in guests if g["guest_id"] == guest_id), None)
+    
+    if not guest:
+        print("Guest not found. Please register first.")
+        return
+    
+    # Show available rooms
+    display_rooms()
+    
+    # Select room
+    room_number = input("\nEnter room number you want to book: ")
+    room = next((r for r in rooms if r["room_number"] == room_number and r["availability"]), None)
+    
+    if not room:
+        print("Invalid room selection or room not available")
+        return
+    
+    # Get dates
+    today = datetime.now().date()
+    check_in = input(f"Check-in date (YYYY-MM-DD, default {today + timedelta(days=1)}): ") or str(today + timedelta(days=1))
+    check_out = input(f"Check-out date (YYYY-MM-DD, default {today + timedelta(days=3)}): ") or str(today + timedelta(days=3))
+    
+    try:
+        # Create reservation
+        reservation_id = f"R{len(reservations)+1:03d}"
+        nights = (datetime.strptime(check_out, "%Y-%m-%d").date() - datetime.strptime(check_in, "%Y-%m-%d").date()).days
+        total = nights * room["price_per_night"]
+        
+        reservation = {
+            "reservation_id": reservation_id,
+            "guest_id": guest_id,
+            "room_number": room_number,
+            "check_in": check_in,
+            "check_out": check_out,
+            "total": total,
+            "status": "Confirmed",
+            "additional_charges": {}
+        }
+        
+        # Update room availability
+        room["availability"] = False
+        
+        # Add to guest's reservations
+        guest["reservations"].append(reservation_id)
+        
+        # Add to reservations list
+        reservations.append(reservation)
+        
+        # Add loyalty points
+        points = int(total * LOYALTY_POINTS_PER_DOLLAR)
+        guest["loyalty_points"] += points
+        
+        print("\nReservation successful!")
+        print(f"Reservation ID: {reservation_id}")
+        print(f"Total: ${total:.2f}")
+        print(f"You earned {points} loyalty points!")
+        print(f"Confirmation sent to {guest['email']}")
+        
+    except ValueError:
+        print("Invalid date format. Please use YYYY-MM-DD.")
+
+def generate_invoice():
+    """Generate and display invoice"""
+    print("\nGENERATE INVOICE")
+    print("=" * 50)
+    
+    reservation_id = input("Enter Reservation ID: ")
+    reservation = next((r for r in reservations if r["reservation_id"] == reservation_id), None)
+    
+    if not reservation:
+        print("Reservation not found")
+        return
+    
+    # Add any additional charges
+    print("\nAdd additional charges (leave blank to finish):")
+    while True:
+        service = input("Service name (e.g., Room Service): ")
+        if not service:
+            break
+        try:
+            amount = float(input("Amount: $"))
+            reservation["additional_charges"][service] = amount
+        except ValueError:
+            print("Invalid amount")
+    
+    # Calculate total
+    subtotal = reservation["total"]
+    additional = sum(reservation["additional_charges"].values())
+    total = subtotal + additional
+    
+    # Display invoice
+    print("\nINVOICE")
+    print("=" * 50)
+    print(f"Reservation ID: {reservation['reservation_id']}")
+    print(f"Room: {reservation['room_number']}")
+    print(f"Dates: {reservation['check_in']} to {reservation['check_out']}")
+    print(f"\nBase Charges: ${subtotal:.2f}")
+    
+    if reservation["additional_charges"]:
+        print("\nAdditional Charges:")
+        for service, amount in reservation["additional_charges"].items():
+            print(f"{service}: ${amount:.2f}")
+    
+    print(f"\nTotal Amount Due: ${total:.2f}")
+    print("=" * 50)
+    
+    # Process payment
+    print("\nPAYMENT OPTIONS:")
+    print("1. Credit/Debit Card")
+    print("2. Mobile Wallet")
+    print("3. Cash")
+    
+    payment_method = input("Select payment method (1-3): ")
+    payment_methods = {1: "Credit/Debit Card", 2: "Mobile Wallet", 3: "Cash"}
+    
+    try:
+        amount = float(input("Enter payment amount: $"))
+        if amount < total:
+            print(f"Partial payment received. Remaining balance: ${total - amount:.2f}")
+        elif amount == total:
+            print("Payment completed successfully!")
+        else:
+            print(f"Payment completed. Change due: ${amount - total:.2f}")
+        
+        print(f"Paid with {payment_methods.get(int(payment_method), 'Unknown method')}")
+    except ValueError:
+        print("Invalid payment amount")
+
+def request_service():
+    """Handle service requests"""
+    print("\nREQUEST SERVICE")
+    print("=" * 50)
+    
+    guest_id = input("Enter your Guest ID: ")
+    guest = next((g for g in guests if g["guest_id"] == guest_id), None)
+    
+    if not guest:
+        print("Guest not found")
+        return
+    
+    print("\nService Types:")
+    print("1. Housekeeping")
+    print("2. Room Service")
+    print("3. Transportation")
+    print("4. Other")
+    
+    service_type = input("Select service type (1-4): ")
+    service_types = {1: "Housekeeping", 2: "Room Service", 3: "Transportation", 4: "Other"}
+    
+    details = input("Enter details about your request: ")
+    
+    request = {
+        "request_id": f"SR{len(service_requests)+1:03d}",
+        "guest_id": guest_id,
+        "service_type": service_types.get(int(service_type), "Other"),
+        "details": details,
+        "status": "Pending",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
+    }
+    
+    service_requests.append(request)
+    print(f"\nService request submitted! Request ID: {request['request_id']}")
+
+def submit_feedback():
+    """Collect guest feedback"""
+    print("\nSUBMIT FEEDBACK")
+    print("=" * 50)
+    
+    guest_id = input("Enter your Guest ID: ")
+    guest = next((g for g in guests if g["guest_id"] == guest_id), None)
+    
+    if not guest:
+        print("Guest not found")
+        return
+    
+    try:
+        rating = int(input("Rate your stay (1-5 stars): "))
+        if not 1 <= rating <= 5:
+            raise ValueError
+    except ValueError:
+        print("Rating must be between 1 and 5")
+        return
+    
+    comments = input("Enter your comments: ")
+    
+    feedback = {
+        "guest_id": guest_id,
+        "rating": rating,
+        "comments": comments,
+        "date": datetime.now().strftime("%Y-%m-%d")
+    }
+    
+    feedbacks.append(feedback)
+    print("\nThank you for your feedback!")
+
+def view_loyalty():
+    """Display loyalty program information"""
+    print("\nLOYALTY PROGRAM")
+    print("=" * 50)
+    
+    guest_id = input("Enter your Guest ID: ")
+    guest = next((g for g in guests if g["guest_id"] == guest_id), None)
+    
+    if not guest:
+        print("Guest not found")
+        return
+    
+    print(f"\nHello, {guest['name']}!")
+    print(f"Your current points: {guest['loyalty_points']}")
+    
+    print("\nAvailable Rewards:")
+    for points, reward in loyalty_rewards.items():
+        if guest["loyalty_points"] >= points:
+            print(f"{points} points: {reward}")
+    
+    redeem = input("\nWould you like to redeem points? (yes/no): ").lower()
+    if redeem == "yes":
+        points_needed = int(input("Enter points needed for reward: "))
+        if points_needed in loyalty_rewards and guest["loyalty_points"] >= points_needed:
+            guest["loyalty_points"] -= points_needed
+            print(f"Reward redeemed: {loyalty_rewards[points_needed]}")
+        else:
+            print("Not enough points or invalid reward selection")
+
+def update_profile():
+    """Update guest profile information"""
+    print("\nUPDATE PROFILE")
+    print("=" * 50)
+    
+    guest_id = input("Enter your Guest ID: ")
+    guest = next((g for g in guests if g["guest_id"] == guest_id), None)
+    
+    if not guest:
+        print("Guest not found")
+        return
+    
+    print("\nCurrent Information:")
+    print(f"Name: {guest['name']}")
+    print(f"Email: {guest['email']}")
+    print(f"Phone: {guest['phone']}")
+    
+    print("\nEnter new information (leave blank to keep current):")
+    name = input(f"Name [{guest['name']}]: ") or guest['name']
+    email = input(f"Email [{guest['email']}]: ") or guest['email']
+    while "@" not in email:
+        print("Invalid email format!")
+        email = input(f"Email [{guest['email']}]: ") or guest['email']
+    
+    phone = input(f"Phone [{guest['phone']}]: ") or guest['phone']
+    while not phone.isdigit():
+        print("Phone number should contain only digits!")
+        phone = input(f"Phone [{guest['phone']}]: ") or guest['phone']
+    
+    guest['name'] = name
+    guest['email'] = email
+    guest['phone'] = phone
+    
+    print("\nProfile updated successfully!")
+
+# Main menu
+def main():
+    """Main program loop"""
+    while True:
+        print("\nROYAL STAY HOTEL MANAGEMENT SYSTEM")
+        print("=" * 50)
+        print("1. View Available Rooms")
+        print("2. Register as Guest")
+        print("3. Make Reservation")
+        print("4. Generate Invoice/Payment")
+        print("5. Request Services")
+        print("6. Submit Feedback")
+        print("7. Loyalty Program")
+        print("8. Update Profile")
+        print("9. Exit")
+        
+        choice = input("\nEnter your choice (1-9): ")
+        
+        if choice == "1":
+            display_rooms()
+        elif choice == "2":
+            register_guest()
+        elif choice == "3":
+            make_reservation()
+        elif choice == "4":
+            generate_invoice()
+        elif choice == "5":
+            request_service()
+        elif choice == "6":
+            submit_feedback()
+        elif choice == "7":
+            view_loyalty()
+        elif choice == "8":
+            update_profile()
+        elif choice == "9":
+            print("\nThank you for using Royal Stay Hotel Management System!")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    print("Welcome to Royal Stay Hotel Management System!")
+    main()
+
